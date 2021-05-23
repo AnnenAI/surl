@@ -16,6 +16,7 @@ class CreateSurlsTable extends Migration
         Schema::create('surls', function (Blueprint $table) {
             $table->id();
             $table->text('url');
+            $table->string('hash',32)->unique();
         });
     }
 

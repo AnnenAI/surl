@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
 use App\Models\Surl;
 
@@ -12,8 +13,18 @@ class SurlController extends Controller
      * @return \Illuminate\Http\JsonResponse
      */
     public function add(Request $request){
-        $url=Surl::create($request->all());
-        $short_url=url()->current() . '/' . $url->id;
+        $hash = md5($request->get('url'));
+        $id = Surl::where('hash', '=', $hash)->first();
+        if (is_null($id)) {
+            $url = new Surl;
+            $url->url = $request->url;
+            $url->hash = md5($request->url);
+            $url->save();
+            $short_url = env('API_APP_URL') . '/' . $url->id;
+        }
+        else{
+            $short_url = env('API_APP_URL') . '/' . $id->id;
+        }
         return response()->json($short_url, 201);
     }
 
@@ -23,7 +34,7 @@ class SurlController extends Controller
      */
     public function get($id){
         $url=Surl::findOrFail($id);
-        return redirect($url->url);
+        return redirect($url->url,301);
     }
 
     /**
@@ -32,9 +43,19 @@ class SurlController extends Controller
      * @return \Illuminate\Http\JsonResponse
      */
     public function update($id, Request $request){
-        $url=Surl::findOrFail($id);
-        $url->update($request->all());
-        return response()->json($url, 200);
+        $hash = md5($request->url);
+        $exists = Surl::where('hash', '=', $hash)->first();
+        if (is_null($exists)) {
+            $url=Surl::findOrFail($id);
+            $url->url = $request->url;
+            $url->hash = $hash;
+            $url->save();
+            $short_url = env('API_APP_URL') . '/' . $url->id;
+        }
+        else{
+            $short_url = env('API_APP_URL') . '/' . $exists->id;
+        }
+        return response()->json($short_url, 200);
     }
 
     /**
